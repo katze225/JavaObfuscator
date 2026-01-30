@@ -46,6 +46,7 @@ public class Obfuscator {
     }
 
     private void loadClasses() throws IOException {
+        System.out.println("Reading JAR file: " + settings.getInputPath());
         JarFile jarFile = new JarFile(settings.getInputPath());
         jarFile.stream().forEach(entry -> {
             try {
@@ -60,6 +61,7 @@ public class Obfuscator {
             }
         });
         jarFile.close();
+        System.out.println("Loaded " + classes.size() + " classes");
     }
 
     private void applyTransformers() {
@@ -67,8 +69,9 @@ public class Obfuscator {
         for (ITransformer transformer : transformers) {
             transformer.setPrefix(prefix);
         }
-        for (ClassNode classNode : classes.values()) {
-            for (ITransformer transformer : transformers) {
+        for (ITransformer transformer : transformers) {
+            System.out.println("Applying " + transformer.getClass().getSimpleName() + "...");
+            for (ClassNode classNode : classes.values()) {
                 try {
                     transformer.modify(classNode);
                 } catch (Exception e) {
@@ -103,6 +106,7 @@ public class Obfuscator {
     }
 
     private void writeOutput() throws IOException {
+        System.out.println("Writing JAR file: " + settings.getOutputPath());
         try (JarOutputStream jarOut = new JarOutputStream(new FileOutputStream(settings.getOutputPath()))) {
             JarFile inputJar = new JarFile(settings.getInputPath());
             
@@ -140,6 +144,7 @@ public class Obfuscator {
                 jarOut.setComment(settings.getZipCommentText());
             }
         }
+        System.out.println("JAR file written successfully");
     }
 
     private void stripFrames(ClassNode classNode) {

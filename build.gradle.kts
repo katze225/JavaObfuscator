@@ -29,6 +29,11 @@ tasks.register("cleanAppleDouble") {
         delete(fileTree(projectDir) {
             include("***/._*")
         })
+        if (buildDir.exists()) {
+            delete(fileTree(buildDir) {
+                include("***/._*")
+            })
+        }
         println("Удалены все Apple Double файлы (._*)")
     }
 }
