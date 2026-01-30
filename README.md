@@ -1,7 +1,7 @@
 # JavaObfuscator
 
 Java obfuscator with Minecraft plugins supports. 
-Based on [ColonialObfuscator](https://github.com/ColonialBuilders/ColonialObfuscator)
+Based on [ColonialObfuscator](https://github.com/katze225/JavaObfuscator/wiki)
 
 ## Features
 
