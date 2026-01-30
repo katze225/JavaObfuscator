@@ -3,11 +3,15 @@ package me.katze225;
 import lombok.Getter;
 import me.katze225.object.ObfuscatorSettings;
 import me.katze225.transformer.ITransformer;
-import me.katze225.transformer.impl.*;
+import me.katze225.transformer.impl.BooleansTransformer;
+import me.katze225.transformer.impl.DispatcherTransformer;
+import me.katze225.transformer.impl.ExpressionTransformer;
+import me.katze225.transformer.impl.NumbersTransformer;
+import me.katze225.transformer.impl.ShuffleTransformer;
+import me.katze225.transformer.impl.StringTransformer;
 import me.katze225.utility.StringUtility;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 
@@ -135,10 +139,8 @@ public class Obfuscator {
             inputJar.close();
 
             for (ClassNode classNode : classes.values()) {
-                if (classNode.version <= Opcodes.V1_5) {
-                    stripFrames(classNode);
-                }
-                ClassWriter classWriter = new ClassWriter(ClassWriter.COMPUTE_MAXS);
+                stripFrames(classNode);
+                ClassWriter classWriter = new CustomClassWriter(ClassWriter.COMPUTE_MAXS);
                 try {
                     classNode.accept(classWriter);
                     final JarEntry jarEntry = new JarEntry(classNode.name.concat(".class"));
@@ -181,5 +183,78 @@ public class Obfuscator {
             buffer.write(data, 0, nRead);
         }
         return buffer.toByteArray();
+    }
+
+    private class CustomClassWriter extends ClassWriter {
+        public CustomClassWriter(int flags) {
+            super(flags);
+        }
+
+        @Override
+        protected String getCommonSuperClass(String type1, String type2) {
+            if (type1.equals(type2)) {
+                return type1;
+            }
+            if (type1.equals("java/lang/Object") || type2.equals("java/lang/Object")) {
+                return "java/lang/Object";
+            }
+
+            ClassNode class1 = classes.get(type1);
+            ClassNode class2 = classes.get(type2);
+
+            if (class1 == null || class2 == null) {
+                try {
+                    return super.getCommonSuperClass(type1, type2);
+                } catch (Exception e) {
+                    return "java/lang/Object";
+                }
+            }
+
+            if (isAssignableFrom(type1, type2)) {
+                return type1;
+            }
+            if (isAssignableFrom(type2, type1)) {
+                return type2;
+            }
+
+            String current = class1.superName;
+            while (current != null && !current.equals("java/lang/Object")) {
+                if (isAssignableFrom(current, type2)) {
+                    return current;
+                }
+                ClassNode currentNode = classes.get(current);
+                if (currentNode == null) {
+                    break;
+                }
+                current = currentNode.superName;
+            }
+
+            return "java/lang/Object";
+        }
+
+        private boolean isAssignableFrom(String type1, String type2) {
+            if (type1.equals(type2)) {
+                return true;
+            }
+
+            ClassNode class2 = classes.get(type2);
+            if (class2 == null) {
+                return false;
+            }
+
+            if (type1.equals(class2.superName)) {
+                return true;
+            }
+
+            if (class2.interfaces != null && class2.interfaces.contains(type1)) {
+                return true;
+            }
+
+            if (class2.superName != null) {
+                return isAssignableFrom(type1, class2.superName);
+            }
+
+            return false;
+        }
     }
 }

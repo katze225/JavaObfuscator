@@ -2,8 +2,10 @@ package me.katze225.transformer.impl;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.objectweb.asm.Type;
@@ -77,20 +79,26 @@ public class DispatcherTransformer implements ITransformer {
 				continue;
 			}
 
+			boolean inline = RANDOM.nextBoolean();
 			String implName = nextUniqueName(used, method.desc);
 			used.add(methodKey(implName, method.desc));
 
-			MethodNode impl = new MethodNode();
-			impl.access = toImplAccess(method.access);
-			impl.name = implName;
-			impl.desc = method.desc;
-			impl.signature = method.signature;
-			impl.exceptions = method.exceptions;
-			impl.instructions = method.instructions;
-			impl.tryCatchBlocks = method.tryCatchBlocks;
-			impl.localVariables = method.localVariables;
-			impl.maxLocals = method.maxLocals;
-			impl.maxStack = method.maxStack;
+			InsnList originalInsn = method.instructions;
+			
+			if (!inline) {
+				MethodNode impl = new MethodNode();
+				impl.access = toImplAccess(method.access);
+				impl.name = implName;
+				impl.desc = method.desc;
+				impl.signature = method.signature;
+				impl.exceptions = method.exceptions;
+				impl.instructions = originalInsn;
+				impl.tryCatchBlocks = method.tryCatchBlocks;
+				impl.localVariables = method.localVariables;
+				impl.maxLocals = method.maxLocals;
+				impl.maxStack = method.maxStack;
+				classNode.methods.add(impl);
+			}
 
 			method.instructions = new InsnList();
 			method.tryCatchBlocks = new ArrayList<>();
@@ -107,14 +115,12 @@ public class DispatcherTransformer implements ITransformer {
 
 			Type returnType = Type.getReturnType(method.desc);
 			Type[] argTypes = Type.getArgumentTypes(method.desc);
-			DispatchEntry entry = new DispatchEntry(key, implName, method.desc, returnType, argTypes, isStatic);
+			DispatchEntry entry = new DispatchEntry(key, implName, method.desc, returnType, argTypes, isStatic, inline, originalInsn);
 			if (isStatic) {
 				staticEntries.add(entry);
 			} else {
 				instanceEntries.add(entry);
 			}
-
-			classNode.methods.add(impl);
 		}
 
 		if (!instanceEntries.isEmpty()) {
@@ -152,20 +158,26 @@ public class DispatcherTransformer implements ITransformer {
 			DispatchEntry entry = sorted.get(i);
 			insn.add(labels[i]);
 
-			if (!entry.isStatic) {
-				insn.add(new VarInsnNode(ALOAD, 0));
-			}
-			for (int argIndex = 0; argIndex < entry.argTypes.length; argIndex++) {
-				Type argType = entry.argTypes[argIndex];
-				insn.add(new VarInsnNode(ALOAD, argsIndex));
-				insn.add(pushInt(argIndex));
-				insn.add(new InsnNode(AALOAD));
-				addUnbox(insn, argType);
-			}
+			if (entry.inline) {
+				InsnList inlinedCode = cloneInsnList(entry.insnList);
+				remapVarsForInline(inlinedCode, entry.argTypes, entry.isStatic, argsIndex);
+				insn.add(inlinedCode);
+			} else {
+				if (!entry.isStatic) {
+					insn.add(new VarInsnNode(ALOAD, 0));
+				}
+				for (int argIndex = 0; argIndex < entry.argTypes.length; argIndex++) {
+					Type argType = entry.argTypes[argIndex];
+					insn.add(new VarInsnNode(ALOAD, argsIndex));
+					insn.add(pushInt(argIndex));
+					insn.add(new InsnNode(AALOAD));
+					addUnbox(insn, argType);
+				}
 
-			int invokeOp = entry.isStatic ? INVOKESTATIC : INVOKESPECIAL;
-			insn.add(new MethodInsnNode(invokeOp, owner, entry.implName, entry.desc, false));
-			addBoxOrNullReturn(insn, entry.returnType);
+				int invokeOp = entry.isStatic ? INVOKESTATIC : INVOKESPECIAL;
+				insn.add(new MethodInsnNode(invokeOp, owner, entry.implName, entry.desc, false));
+				addBoxOrNullReturn(insn, entry.returnType);
+			}
 		}
 
 		insn.add(defaultLabel);
@@ -341,6 +353,53 @@ public class DispatcherTransformer implements ITransformer {
 		return key;
 	}
 
+	private static InsnList cloneInsnList(InsnList original) {
+		InsnList clone = new InsnList();
+		Map<LabelNode, LabelNode> labelMap = new HashMap<>();
+		
+		for (AbstractInsnNode insn : original) {
+			if (insn instanceof LabelNode) {
+				LabelNode oldLabel = (LabelNode) insn;
+				LabelNode newLabel = new LabelNode();
+				labelMap.put(oldLabel, newLabel);
+			}
+		}
+		
+		for (AbstractInsnNode insn : original) {
+			clone.add(insn.clone(labelMap));
+		}
+		
+		return clone;
+	}
+
+	private static void remapVarsForInline(InsnList insn, Type[] argTypes, boolean isStatic, int argsArrayIndex) {
+		int originalVarBase = isStatic ? 0 : 1;
+		
+		for (AbstractInsnNode node : insn) {
+			if (node instanceof VarInsnNode) {
+				VarInsnNode varNode = (VarInsnNode) node;
+				int originalIndex = varNode.var;
+				
+				if (!isStatic && originalIndex == 0) {
+					continue;
+				}
+				
+				int argIndex = originalIndex - originalVarBase;
+				if (argIndex >= 0 && argIndex < argTypes.length) {
+					Type argType = argTypes[argIndex];
+					InsnList replacement = new InsnList();
+					replacement.add(new VarInsnNode(ALOAD, argsArrayIndex));
+					replacement.add(pushInt(argIndex));
+					replacement.add(new InsnNode(AALOAD));
+					addUnbox(replacement, argType);
+					
+					insn.insert(node, replacement);
+					insn.remove(node);
+				}
+			}
+		}
+	}
+
 	private static final class DispatchEntry {
 		private final int key;
 		private final String implName;
@@ -348,15 +407,19 @@ public class DispatcherTransformer implements ITransformer {
 		private final Type returnType;
 		private final Type[] argTypes;
 		private final boolean isStatic;
+		private final boolean inline;
+		private final InsnList insnList;
 
 		private DispatchEntry(int key, String implName, String desc, Type returnType, Type[] argTypes,
-				boolean isStatic) {
+				boolean isStatic, boolean inline, InsnList insnList) {
 			this.key = key;
 			this.implName = implName;
 			this.desc = desc;
 			this.returnType = returnType;
 			this.argTypes = argTypes;
 			this.isStatic = isStatic;
+			this.inline = inline;
+			this.insnList = insnList;
 		}
 	}
 }
