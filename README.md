@@ -3,6 +3,8 @@
 Java obfuscator with Minecraft plugins supports. 
 Based on [ColonialObfuscator](https://github.com/ColonialBuilders/ColonialObfuscator)
 
+📖 **[How to Run](https://github.com/katze225/JavaObfuscator/wiki/Usage)**
+
 ## Features
 
 - **String Encryption** - Encrypts string constants with XOR-based encryption
@@ -12,52 +14,7 @@ Based on [ColonialObfuscator](https://github.com/ColonialBuilders/ColonialObfusc
 - **Dispatcher** - Converts methods to use dispatcher pattern
 - **Shuffle** - Randomizes order of fields and methods
 
-## Building
-
-```bash
-./gradlew build
-```
-
-The output JAR will be in `build/libs`
-
-## Usage
-
-```bash
-java -jar JavaObfuscator.jar <input.jar> <output.jar> [options]
-```
-
-### Options
-
-- `--names-length <n>` - Name length for generated identifiers (default: 40)
-- `--numbers` - Enable number obfuscation
-- `--strings` - Enable string encryption
-- `--booleans` - Enable boolean obfuscation
-- `--flow` - Enable flow obfuscation
-- `--dispatcher` - Enable dispatcher transformation
-- `--shuffle` - Enable shuffle transformation
-- `--zip-comment` - Add ZIP comment to output JAR
-- `--zip-comment-text <text>` - Custom ZIP comment text
-
-If no transformer options are specified, all transformers are enabled by default.
-
-### Examples
-
-Enable all transformers (default):
-```bash
-java -jar JavaObfuscator.jar input.jar output.jar
-```
-
-Enable specific transformers:
-```bash
-java -jar JavaObfuscator.jar input.jar output.jar --strings --numbers --flow
-```
-
-Custom name length:
-```bash
-java -jar JavaObfuscator.jar input.jar output.jar --names-length 60
-```
-
-## Obfuscatio
+## Obfuscation
 Before:
 ```
          public boolean returnTrue() {
@@ -122,10 +79,6 @@ public class Test {
          }
      }
 ```
-
-## Requirements
-
-- Java 21 or higher
 
 ## Author
 
