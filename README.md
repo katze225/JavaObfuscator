@@ -3,7 +3,8 @@
 Java obfuscator with Minecraft plugins supports. 
 Based on [ColonialObfuscator](https://github.com/ColonialBuilders/ColonialObfuscator)
 
-📖 **[How to Run](https://github.com/katze225/JavaObfuscator/wiki/Usage)**
+## Now to run
+Check out [wiki](https://github.com/katze225/JavaObfuscator/wiki/Usage)
 
 ## Features
 
