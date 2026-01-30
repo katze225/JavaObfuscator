@@ -79,7 +79,7 @@ public class Test {
 ```
 
 ## How to run
-Check out the [wiki](https://github.com/katze225/JavaObfuscator/wiki/Usage).
+Check out the [wiki](https://github.com/katze225/JavaObfuscator/wiki/Usage)
 
 ## Author
 
