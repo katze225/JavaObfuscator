@@ -3,9 +3,6 @@
 Java obfuscator with Minecraft plugins supports. 
 Based on [ColonialObfuscator](https://github.com/ColonialBuilders/ColonialObfuscator)
 
-## Now to run
-Check out [wiki](https://github.com/katze225/JavaObfuscator/wiki/Usage)
-
 ## Features
 
 - **String Encryption** - Encrypts string constants with XOR-based encryption
@@ -80,6 +77,9 @@ public class Test {
          }
      }
 ```
+
+## How to run
+Check out the [wiki](https://github.com/katze225/JavaObfuscator/wiki/Usage).
 
 ## Author
 
