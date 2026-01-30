@@ -6,12 +6,6 @@ import org.objectweb.asm.tree.ClassNode;
 import java.util.Collections;
 
 public class ShuffleTransformer implements ITransformer {
-    private String prefix;
-
-    @Override
-    public void setPrefix(String prefix) {
-        this.prefix = prefix;
-    }
 
     @Override
     public void modify(ClassNode classNode) {

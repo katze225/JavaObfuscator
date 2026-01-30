@@ -28,7 +28,7 @@ public class BytecodeUtility {
         AbstractInsnNode[] array = instructions.toArray();
         for (AbstractInsnNode node : array) {
             if (node.getClass() == type) {
-                consumer.accept((T) node);
+                consumer.accept(type.cast(node));
             }
         }
     }

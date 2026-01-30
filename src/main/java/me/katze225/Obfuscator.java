@@ -101,7 +101,7 @@ public class Obfuscator {
             transformers.add(new BooleansTransformer());
         }
         if (settings.isEnabledFlow()) {
-            transformers.add(new FlowTransformer());
+            transformers.add(new ExpressionTransformer());
         }
         if (settings.isEnabledDispatcher()) {
             transformers.add(new DispatcherTransformer());

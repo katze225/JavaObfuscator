@@ -7,6 +7,6 @@ import java.util.Random;
 
 public interface ITransformer extends Opcodes {
     void modify(ClassNode classNode);
-    void setPrefix(String prefix);
+    default void setPrefix(String prefix) {};
     Random RANDOM = new Random();
 }

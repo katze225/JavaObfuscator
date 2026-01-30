@@ -6,13 +6,8 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
 
 
-public class FlowTransformer implements ITransformer {
-    private String prefix;
+public class ExpressionTransformer implements ITransformer {
 
-    @Override
-    public void setPrefix(String prefix) {
-        this.prefix = prefix;
-    }
     private static final int LARGE_METHOD_LIMIT = 4000;
 
     private static boolean isMethodTooLarge(MethodNode method) {
@@ -56,6 +51,34 @@ public class FlowTransformer implements ITransformer {
 						if (prev != null && isIntConstant(prev)) {
 							int constantValue = getIntValue(prev);
 							InsnList replacement = createComplexIntExpression(constantValue);
+							AbstractInsnNode prevPrev = previousMeaningful(prev);
+							method.instructions.insertBefore(prev, replacement);
+							method.instructions.remove(prev);
+							
+							if (prevPrev != null && isIntConstant(prevPrev)) {
+								int constantValue2 = getIntValue(prevPrev);
+								InsnList replacement2 = createComplexIntExpression(constantValue2);
+								method.instructions.insertBefore(prevPrev, replacement2);
+								method.instructions.remove(prevPrev);
+							}
+						} else if (prev != null) {
+							AbstractInsnNode prevPrev = previousMeaningful(prev);
+							if (prevPrev != null && isIntConstant(prevPrev)) {
+								int constantValue2 = getIntValue(prevPrev);
+								InsnList replacement2 = createComplexIntExpression(constantValue2);
+								method.instructions.insertBefore(prevPrev, replacement2);
+								method.instructions.remove(prevPrev);
+							}
+						}
+					}
+				}
+
+				if (isIfZeroComparisonInsn(insnNode)) {
+					if (!isClinit) {
+						AbstractInsnNode prev = previousMeaningful(insnNode);
+						if (prev != null && isIntConstant(prev)) {
+							int constantValue = getIntValue(prev);
+							InsnList replacement = createComplexIntExpression(constantValue);
 							method.instructions.insertBefore(prev, replacement);
 							method.instructions.remove(prev);
 						}
@@ -73,7 +96,7 @@ public class FlowTransformer implements ITransformer {
 						AbstractInsnNode prev = previousMeaningful(insnNode);
 						if (prev != null && isIntConstant(prev)) {
 							int constantValue = getIntValue(prev);
-							if (constantValue > 0 && constantValue <= 30000) {
+							if (constantValue > 0) {
 								InsnList replacement = createComplexIntExpression(constantValue);
 								method.instructions.insertBefore(prev, replacement);
 								method.instructions.remove(prev);
@@ -159,103 +182,6 @@ public class FlowTransformer implements ITransformer {
 			|| op == INVOKESTATIC || op == INVOKEINTERFACE;
 	}
 
-	private boolean isNullCheckInsn(AbstractInsnNode node) {
-		if (node == null) {
-			return false;
-		}
-		int op = node.getOpcode();
-		return op == IFNULL || op == IFNONNULL;
-	}
-
-	private boolean isObjectComparisonInsn(AbstractInsnNode node) {
-		if (node == null) {
-			return false;
-		}
-		int op = node.getOpcode();
-		return op == IF_ACMPEQ || op == IF_ACMPNE;
-	}
-
-	private void invertCondition(MethodNode method, AbstractInsnNode jumpInsn) {
-		JumpInsnNode jump = (JumpInsnNode) jumpInsn;
-		LabelNode originalTarget = jump.label;
-		
-		if (!hasCodeBetween(jumpInsn, originalTarget)) {
-			return;
-		}
-		
-		LabelNode newElseLabel = new LabelNode();
-		int invertedOp = getInvertedIntComparison(jump.getOpcode());
-		JumpInsnNode newJump = new JumpInsnNode(invertedOp, newElseLabel);
-		
-		method.instructions.set(jump, newJump);
-		method.instructions.insert(newJump, newElseLabel);
-		method.instructions.insert(newElseLabel, new JumpInsnNode(GOTO, originalTarget));
-	}
-
-	private void invertNullCheck(MethodNode method, AbstractInsnNode jumpInsn) {
-		JumpInsnNode jump = (JumpInsnNode) jumpInsn;
-		LabelNode originalTarget = jump.label;
-		
-		if (!hasCodeBetween(jumpInsn, originalTarget)) {
-			return;
-		}
-		
-		LabelNode newElseLabel = new LabelNode();
-		int invertedOp = jump.getOpcode() == IFNULL ? IFNONNULL : IFNULL;
-		JumpInsnNode newJump = new JumpInsnNode(invertedOp, newElseLabel);
-		
-		method.instructions.set(jump, newJump);
-		method.instructions.insert(newJump, newElseLabel);
-		method.instructions.insert(newElseLabel, new JumpInsnNode(GOTO, originalTarget));
-	}
-
-	private void invertObjectComparison(MethodNode method, AbstractInsnNode jumpInsn) {
-		JumpInsnNode jump = (JumpInsnNode) jumpInsn;
-		LabelNode originalTarget = jump.label;
-		
-		if (!hasCodeBetween(jumpInsn, originalTarget)) {
-			return;
-		}
-		
-		LabelNode newElseLabel = new LabelNode();
-		int invertedOp = jump.getOpcode() == IF_ACMPEQ ? IF_ACMPNE : IF_ACMPEQ;
-		JumpInsnNode newJump = new JumpInsnNode(invertedOp, newElseLabel);
-		
-		method.instructions.set(jump, newJump);
-		method.instructions.insert(newJump, newElseLabel);
-		method.instructions.insert(newElseLabel, new JumpInsnNode(GOTO, originalTarget));
-	}
-
-	private boolean hasCodeBetween(AbstractInsnNode start, LabelNode target) {
-		AbstractInsnNode current = start.getNext();
-		while (current != null && current != target) {
-			if (current.getOpcode() >= 0 && !(current instanceof LabelNode) 
-				&& !(current instanceof LineNumberNode) && !(current instanceof FrameNode)) {
-				return true;
-			}
-			current = current.getNext();
-		}
-		return false;
-	}
-
-	private int getInvertedIntComparison(int opcode) {
-		switch (opcode) {
-			case IF_ICMPEQ: return IF_ICMPNE;
-			case IF_ICMPNE: return IF_ICMPEQ;
-			case IF_ICMPLT: return IF_ICMPGE;
-			case IF_ICMPGE: return IF_ICMPLT;
-			case IF_ICMPGT: return IF_ICMPLE;
-			case IF_ICMPLE: return IF_ICMPGT;
-			case IFEQ: return IFNE;
-			case IFNE: return IFEQ;
-			case IFLT: return IFGE;
-			case IFGE: return IFLT;
-			case IFGT: return IFLE;
-			case IFLE: return IFGT;
-			default: return opcode;
-		}
-	}
-
 	private boolean isIfComparisonInsn(AbstractInsnNode node) {
 		if (node == null) {
 			return false;
@@ -263,6 +189,15 @@ public class FlowTransformer implements ITransformer {
 		int op = node.getOpcode();
 		return op == IF_ICMPEQ || op == IF_ICMPNE || op == IF_ICMPLT 
 			|| op == IF_ICMPGE || op == IF_ICMPGT || op == IF_ICMPLE;
+	}
+
+	private boolean isIfZeroComparisonInsn(AbstractInsnNode node) {
+		if (node == null) {
+			return false;
+		}
+		int op = node.getOpcode();
+		return op == IFEQ || op == IFNE || op == IFLT 
+			|| op == IFLE || op == IFGT || op == IFGE;
 	}
 
 	private boolean isIntConstant(AbstractInsnNode node) {
