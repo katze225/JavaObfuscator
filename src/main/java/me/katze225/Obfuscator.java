@@ -13,6 +13,9 @@ import org.objectweb.asm.tree.MethodNode;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -47,6 +50,10 @@ public class Obfuscator {
 
     private void loadClasses() throws IOException {
         System.out.println("Reading JAR file: " + settings.getInputPath());
+        Path inputPath = Paths.get(settings.getInputPath());
+        if (!Files.exists(inputPath)) {
+            throw new IOException("Input JAR file not found: " + settings.getInputPath());
+        }
         JarFile jarFile = new JarFile(settings.getInputPath());
         jarFile.stream().forEach(entry -> {
             try {
@@ -108,6 +115,10 @@ public class Obfuscator {
     private void writeOutput() throws IOException {
         System.out.println("Writing JAR file: " + settings.getOutputPath());
         try (JarOutputStream jarOut = new JarOutputStream(new FileOutputStream(settings.getOutputPath()))) {
+            Path inputPath = Paths.get(settings.getInputPath());
+            if (!Files.exists(inputPath)) {
+                throw new IOException("Input JAR file not found: " + settings.getInputPath());
+            }
             JarFile inputJar = new JarFile(settings.getInputPath());
             
             inputJar.stream().forEach(entry -> {
