@@ -3,7 +3,7 @@
 Java obfuscator with Minecraft plugins supports. 
 Based on [ColonialObfuscator](https://github.com/ColonialBuilders/ColonialObfuscator)
 
-> ⚠️ NOTE: Written mostly with the help of AI due to my fairly limited JVM knowledge. It’s quite stable on Java 7–25 and works very well with Minecraft Paper plugins. I’m unlikely to actively maintain it further.
+> ⚠️ NOTE: It’s quite stable on Java 7–25 and works very well with Minecraft Paper plugins. I’m unlikely to actively maintain it further.
 
 ## Features
 
