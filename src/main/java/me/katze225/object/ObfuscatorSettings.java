@@ -20,6 +20,7 @@ public class ObfuscatorSettings {
     private boolean enabledFlow;
     private boolean enabledDispatcher;
     private boolean enabledShuffle;
+    private boolean enabledTrash;
     private boolean enabledZipComment;
     private String zipCommentText;
 }

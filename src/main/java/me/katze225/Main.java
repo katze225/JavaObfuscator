@@ -43,6 +43,7 @@ public class Main {
         boolean enabledFlow = false;
         boolean enabledDispatcher = false;
         boolean enabledShuffle = false;
+        boolean enabledTrash = false;
         boolean enabledZipComment = false;
 
         for (int i = 2; i < args.length; i++) {
@@ -96,6 +97,9 @@ public class Main {
             } else if (arg.equalsIgnoreCase("--shuffle")) {
                 enabledShuffle = true;
                 anyTransformerSpecified = true;
+            } else if (arg.equalsIgnoreCase("--trash")) {
+                enabledTrash = true;
+                anyTransformerSpecified = true;
             } else if (arg.equalsIgnoreCase("--zip-comment")) {
                 enabledZipComment = true;
                 anyTransformerSpecified = true;
@@ -115,6 +119,7 @@ public class Main {
                 enableAll || enabledFlow,
                 enableAll || enabledDispatcher,
                 enableAll || enabledShuffle,
+                enableAll || enabledTrash,
                 enableAll || enabledZipComment,
                 zipCommentText
         );
@@ -138,6 +143,7 @@ public class Main {
         System.out.println("  --flow                  Flow (complex boolean return expressions)");
         System.out.println("  --dispatcher            Dispatcher");
         System.out.println("  --shuffle               Shuffle");
+        System.out.println("  --trash                 Trash");
         System.out.println("  --zip-comment           ZipComment (jar comment)");
         System.out.println("  --zip-comment-text <t>  Zip comment text");
         System.out.println("If no transformer options are provided, all transformers are enabled.");

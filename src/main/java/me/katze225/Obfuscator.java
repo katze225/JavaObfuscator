@@ -9,6 +9,7 @@ import me.katze225.transformer.impl.ExpressionTransformer;
 import me.katze225.transformer.impl.NumbersTransformer;
 import me.katze225.transformer.impl.ShuffleTransformer;
 import me.katze225.transformer.impl.StringTransformer;
+import me.katze225.transformer.impl.TrashTransformer;
 import me.katze225.utility.StringUtility;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
@@ -95,6 +96,9 @@ public class Obfuscator {
 
     private List<ITransformer> buildTransformers() {
         List<ITransformer> transformers = new ArrayList<>();
+        if (settings.isEnabledTrash()) {
+            transformers.add(new TrashTransformer());
+        }
         if (settings.isEnabledString()) {
             transformers.add(new StringTransformer());
         }
